@@ -1,18 +1,37 @@
 """
 Databricks connection configuration.
-Uses environment variables to keep secrets out of the repository.
+Uses Streamlit secrets to keep credentials out of the repository.
 """
-import os
+import streamlit as st
 from dataclasses import dataclass
 
 
 @dataclass
 class DatabricksConfig:
-    server_hostname: str = os.getenv("DATABRICKS_SERVER_HOSTNAME", "")
-    http_path: str = os.getenv("DATABRICKS_HTTP_PATH", "")
-    access_token: str = os.getenv("DATABRICKS_ACCESS_TOKEN", "")
-    catalog: str = os.getenv("DATABRICKS_CATALOG", "hive_metastore")
-    schema: str = os.getenv("DATABRICKS_SCHEMA", "default")
+    server_hostname: str = ""
+    http_path: str = ""
+    access_token: str = ""
+    catalog: str = "hive_metastore"
+    schema: str = "default"
+
+    @classmethod
+    def from_secrets(cls) -> "DatabricksConfig":
+        """Load Databricks configuration from Streamlit secrets."""
+        try:
+            dbx = st.secrets["databricks"]
+            return cls(
+                server_hostname=dbx.get("server_hostname", ""),
+                http_path=dbx.get("http_path", ""),
+                access_token=dbx.get("access_token", ""),
+                catalog=dbx.get("catalog", "hive_metastore"),
+                schema=dbx.get("schema", "default"),
+            )
+        except KeyError:
+            raise ValueError(
+                "Missing 'databricks' section in secrets. "
+                "Please configure your Databricks connection in "
+                ".streamlit/secrets.toml or Streamlit Cloud secrets."
+            )
 
 
 # Dashboard theme colors

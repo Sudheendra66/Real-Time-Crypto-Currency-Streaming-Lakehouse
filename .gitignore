@@ -24,6 +24,9 @@ env/
 profiles.yml
 **/profiles.yml
 
+# Streamlit secrets (NEVER commit these)
+.streamlit/secrets.toml
+
 # ============================================================
 # dbt
 # ============================================================

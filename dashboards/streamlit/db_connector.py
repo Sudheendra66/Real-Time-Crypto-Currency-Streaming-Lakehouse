@@ -7,9 +7,14 @@ from databricks import sql
 from config import DatabricksConfig
 
 
+def get_config():
+    """Load and return the Databricks configuration from Streamlit secrets."""
+    return DatabricksConfig.from_secrets()
+
+
 def get_connection():
     """Create and return a Databricks SQL connection."""
-    config = DatabricksConfig()
+    config = get_config()
     conn = sql.connect(
         server_hostname=config.server_hostname,
         http_path=config.http_path,
@@ -35,23 +40,29 @@ def query_to_df(query: str) -> pd.DataFrame:
         conn.close()
 
 
-# ─── Pre-built queries for each mart ────────────────────────────────────────
+def _full_table_name(config: DatabricksConfig, table: str) -> str:
+    """Return a fully-qualified table name using catalog and schema from config."""
+    return f"{config.catalog}.{config.schema}.{table}"
 
-QUERY_MARKET_OVERVIEW = """
-SELECT * FROM hive_metastore.default.market_overview
-"""
 
-QUERY_CRYPTO_SUMMARY = """
-SELECT * FROM hive_metastore.default.crypto_summary
-ORDER BY total_volume DESC
-"""
+def _build_query_market_overview(config: DatabricksConfig) -> str:
+    tbl = _full_table_name(config, "market_overview")
+    return f"SELECT * FROM {tbl}"
 
-QUERY_TOP_VOLUME = """
-SELECT * FROM hive_metastore.default.top_volume_assets
-"""
 
-# asset_performance doesn't exist as a table, so we compute it from crypto_summary
-QUERY_ASSET_PERFORMANCE = """
+def _build_query_crypto_summary(config: DatabricksConfig) -> str:
+    tbl = _full_table_name(config, "crypto_summary")
+    return f"SELECT * FROM {tbl} ORDER BY total_volume DESC"
+
+
+def _build_query_top_volume(config: DatabricksConfig) -> str:
+    tbl = _full_table_name(config, "top_volume_assets")
+    return f"SELECT * FROM {tbl}"
+
+
+def _build_query_asset_performance(config: DatabricksConfig) -> str:
+    tbl = _full_table_name(config, "crypto_summary")
+    return f"""
 SELECT
     symbol,
     avg_price,
@@ -63,22 +74,26 @@ SELECT
     number_of_trades,
     total_trade_value / NULLIF(total_volume, 0) AS avg_trade_value_per_unit,
     total_volume / NULLIF(number_of_trades, 0) AS avg_volume_per_trade
-FROM hive_metastore.default.crypto_summary
+FROM {tbl}
 ORDER BY total_volume DESC
 """
 
 
 def get_market_overview() -> pd.DataFrame:
-    return query_to_df(QUERY_MARKET_OVERVIEW)
+    config = get_config()
+    return query_to_df(_build_query_market_overview(config))
 
 
 def get_crypto_summary() -> pd.DataFrame:
-    return query_to_df(QUERY_CRYPTO_SUMMARY)
+    config = get_config()
+    return query_to_df(_build_query_crypto_summary(config))
 
 
 def get_top_volume() -> pd.DataFrame:
-    return query_to_df(QUERY_TOP_VOLUME)
+    config = get_config()
+    return query_to_df(_build_query_top_volume(config))
 
 
 def get_asset_performance() -> pd.DataFrame:
-    return query_to_df(QUERY_ASSET_PERFORMANCE)
+    config = get_config()
+    return query_to_df(_build_query_asset_performance(config))

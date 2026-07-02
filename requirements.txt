@@ -1,0 +1,20 @@
+# ============================================================
+# Streamlit Dashboard Dependencies
+# ============================================================
+# Core dashboard framework
+streamlit>=1.28.0
+
+# Data manipulation
+pandas>=2.0.0
+
+# Visualization
+plotly>=5.17.0
+
+# Databricks SQL connector
+databricks-sql-connector>=2.9.0
+
+# ============================================================
+# Optional: dbt (for local development/testing)
+# ============================================================
+# dbt-core>=1.7.0
+# dbt-databricks>=1.7.0

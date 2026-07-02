@@ -12,7 +12,7 @@ from plotly.subplots import make_subplots
 
 # ─── Path setup ──────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import Theme
+from config import Theme, DatabricksConfig
 
 # ─── Page config (MUST be the first Streamlit command) ──────────────────────
 st.set_page_config(
@@ -402,15 +402,41 @@ def load_data():
 
 
 try:
+    # Validate secrets are configured before attempting connection
+    DatabricksConfig.from_secrets()
     df_overview, df_summary, df_top, df_perf = load_data()
     data_source = "Databricks SQL Warehouse"
     connection_ok = True
-except Exception as e:
-    st.error(f"❌ **Databricks connection failed** — unable to load dashboard data.")
-    st.error(f"Error: `{e}`")
-    st.info("Please verify your Databricks SQL Warehouse is running and the tables exist.")
+except ValueError as ve:
+    st.error("🔐 **Missing Databricks Configuration**")
+    st.error(f"`{ve}`")
+    st.info(
+        "To configure, create a `.streamlit/secrets.toml` file in the project root "
+        "with your Databricks connection details, or configure secrets in "
+        "Streamlit Cloud dashboard."
+    )
+    st.markdown(
+        "**Required secrets format:**\n\n"
+        "```toml\n"
+        "[databricks]\n"
+        "server_hostname = \"your-workspace.azuredatabricks.net\"\n"
+        "http_path = \"/sql/1.0/warehouses/your-warehouse-id\"\n"
+        "access_token = \"dapi-your-token\"\n"
+        "catalog = \"hive_metastore\"\n"
+        "schema = \"default\"\n"
+        "```"
+    )
     st.stop()
-    connection_ok = False
+except Exception as e:
+    st.error("❌ **Databricks connection failed** — unable to load dashboard data.")
+    st.error(f"Error: `{e}`")
+    st.info(
+        "Please verify:\n"
+        "1. Your Databricks SQL Warehouse is running\n"
+        "2. The required tables exist (market_overview, crypto_summary, top_volume_assets)\n"
+        "3. Your credentials in secrets are correct"
+    )
+    st.stop()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
